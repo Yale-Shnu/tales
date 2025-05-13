@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>童话沙拉 - 魔法故事厨房</title>
+    <style>
+        :root {
+            --primary-color: #6fa3eb;
+            --secondary-color: #b57edc;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', '华文楷体', cursive;
+            background: #f0f8ff url('data:image/svg+xml,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><path fill="%23b57edc33" d="M45.6,-50C58.1,-34.6,66.1,-17.3,65.3,-0.9C64.5,15.5,55,31,42.5,43.6C30,56.3,14.5,66.2,-2.9,69.1C-20.3,72,-40.7,68,-55.3,55.3C-70,42.7,-79,21.3,-78.3,0.7C-77.6,-20,-67.3,-40,-52.7,-55.3C-38.1,-70.7,-19,-81.3,-0.3,-81Z"/></svg>');
+            color: #2c3e50;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            border-radius: 15px;
+            color: white;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .header::after {
+            content: '✨';
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2em;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        select, input[type="text"] {
+            flex: 1;
+            min-width: 180px;
+            padding: 10px;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            background: #fff;
+            font-size: 16px;
+        }
+
+        .word-count {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        #generateBtn {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 30px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: block;
+            margin: 20px auto;
+            position: relative;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading::after {
+            content: '...';
+            position: absolute;
+            right: -20px;
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
+        }
+
+        #storyResult {
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            white-space: pre-wrap;
+            line-height: 1.8;
+            word-break: break-word;
+        }
+
+        .invalid-char {
+            color: #e74c3c;
+            border-bottom: 2px dashed #f1c40f;
+            padding: 0 2px;
+        }
+
+        .invalid-tip {
+            margin-top: 10px;
+            color: #95a5a6;
+            font-size: 0.9em;
+            border-left: 3px solid #f1c40f;
+            padding-left: 8px;
+        }
+
+        .speech-controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .speech-btn {
+            padding: 8px 20px;
+            margin: 0 5px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            min-width: 120px;
+        }
+
+        .speech-btn:hover {
+            opacity: 0.8;
+        }
+
+        /* 新增朗读状态反馈 */
+        #storyResult.reading {
+            background: #f8f9fa;
+            transition: background 0.3s;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .speech-loading {
+            animation: pulse 1.5s infinite;
+            filter: grayscale(0.8);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            select, input[type="text"] {
+                width: 100%;
+                min-width: auto;
+            }
+            
+            .word-count {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            #storyResult {
+                padding: 15px;
+            }
+            
+            .speech-controls {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .speech-btn {
+                width: 100%;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🍎 童话沙拉 🥗</h1>
+        <p>搅拌魔法元素，烹饪奇妙故事！</p>
+    </div>
+
+   <div class="creation-panel">
+        <div class="form-row">
+            <select id="word1">
+                <option value="">选择魔法元素（可选）</option>
+                <option>国王</option><option>书</option><option>小树</option>
+                <option>心思</option><option>草丛</option><option>星星</option>
+                <option>手</option><option>小土豆</option><option>影子</option>
+                <option>眼泪</option><option>乌云</option><option>啄木鸟</option>
+                <option>猪</option><option>猫</option><option>灯</option>
+                <option>教室</option><option>街头</option><option>火车</option>
+                <option>帽子</option><option>小老鼠</option><option>校长</option>
+                <option>伞</option><option>蜡笔</option><option>爷爷</option>
+                <option>厨房</option><option>森林超市</option><option>小河边</option>
+                <option>玫瑰花</option><option>扫帚</option><option>袋子</option>
+            </select>
+            <select id="word2">
+                <option value="">选择神奇属性（可选）</option>
+                <option>好玩的</option><option>有魔法的</option><option>神奇的</option>
+                <option>荒唐的</option><option>任性的</option><option>超级的</option>
+                <option>袖珍的</option><option>高大的</option><option>愤怒的</option>
+                <option>紧张的</option><option>马虎的</option><option>困倦的</option>
+                <option>奇怪的</option><option>胆小的</option><option>神奇的</option>
+                <option>滑稽的</option><option>古怪的</option><option>美丽的</option>
+                <option>冷静的</option><option>粗鲁的</option><option>焦躁的</option>
+                <option>凶恶的</option><option>马虎的</option><option>困倦的</option>
+                <option>冷漠的</option><option>优雅的</option><option>自卑的</option>
+                <option>机智的</option><option>热情的</option><option>惊讶的</option>
+                <option>无聊的</option><option>礼貌的</option><option>呆板的</option>
+                <option>耐心的</option><option>坚强的</option><option>有魅力的</option>
+                <option>潮湿的</option><option>明亮的</option><option>漆黑的</option>
+            </select>
+        </div>
+
+        <div class="form-row">
+            <select id="word3">
+                <option value="">选择魔法动作（可选）</option>
+                <option>躲</option><option>罢工</option><option>卷</option>
+                <option>借</option><option>吵</option><option>买</option>
+                <option>发火</option><option>说谎</option><option>擦</option>
+                <option>跑</option><option>捉</option><option>逃</option>
+                <option>和解</option><option>忍受</option><option>骗</option>
+                <option>夺</option><option>救</option><option>抬</option>
+                <option>探视</option><option>减肥</option><option>打滚</option>
+                <option>飞奔</option><option>横冲直撞</option><option>扭转</option>
+            </select>
+            <select id="word4">
+                <option value="">选择魔法时刻（可选）</option>
+                <option>凌晨</option><option>黄昏</option><option>盛夏</option>
+                <option>星期天</option><option>柳条绿了</option><option>春分</option>
+                <option>隆冬</option><option>中秋</option><option>星夜</option>
+                <option>黎明</option><option>大雪纷纷</option><option>电闪雷鸣</option>
+                <option>假期</option><option>一眨眼</option><option>儿童节</option>
+                <option>愚人节</option><option>新年</option><option>圣诞夜</option>
+                <option>日出</option><option>月亮升起来了</option><option>从前</option>
+            </select>
+        </div>
+
+        <div class="form-row">
+            <input type="text" id="customWord" placeholder="自创魔法元素（可选）" style="width:100%">
+        </div>
+
+        <div class="word-count">
+            <label><input type="radio" name="length" value="400" checked> 短篇（400字）</label>
+            <label><input type="radio" name="length" value="600"> 中篇（600字）</label>
+            <label><input type="radio" name="length" value="800"> 长篇（800字）</label>
+        </div>
+
+        <button id="generateBtn" onclick="generateStory()">🎩 施展魔法！ ✨</button>
+    </div>
+
+    <div id="storyResult"></div>
+    <div class="speech-controls" style="display:none">
+        <button class="speech-btn" onclick="toggleReading()" id="toggleBtn" style="background:var(--primary-color)">🔊 开始朗读</button>
+        <button class="speech-btn" onclick="stopReading()" style="background:var(--secondary-color)">⏹ 停止</button>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer" style="text-align: center; margin-top: 40px; padding: 20px;">
+        <img src="logo.png" width="33" height="32" class="footer-logo">
+        <div class="copyright">
+            手把手 · AI工具系列 © 2025 | SHNUYL 版权所有
+        </div>
+    </footer>
+
+    <script>
+        // API配置（需要填写有效信息）
+        const API_CONFIG = {
+            url: "https://api.deepseek.com/v1/chat/completions",
+            key: "sk-e0371d78475c43ffb7b4ea75cfb075de",
+            model: "deepseek-chat"
+        };
+
+        // 增强字表（包含常用标点）
+        const ALLOWED_CHARS = new Set(`，、；。！……？“”的一了是我在不有人上个来这们地小大他到说子中着你下和时出里么要为就天得生学可看以用过多会自面把那去家也起好后能想成样年动国作对方文同它读发什都长分写水还点心些开然只事两如道儿从头没花老又边现意前高三于手物行知己种数明进做她情很法活声给最回走果海见像气而色当几课问山体向之等比妈日表字身间经相正怎听所话次语定理美第光位别与形二哪树再平真月十本白无解风题外实常快叫少每因路直力感师画口打眼条全西书变图已名句先重工马习使主新四公被让带放吗呢爱孩记亲飞关加内但候结空流世车将爸东其合太门角线部并特思各笑处找原住根红者通电乐清才望或吃星更片化交球民应机阳词信利欢节林音远完连火观王接由米提度许五界选金请喜示石安求件游入整张女满象神吧故轻教组黄指代此千程草认母场计量难受队万容总员目料算立步往深河式照达雨友命觉亮青船却春跑落歌鱼运南啊便告干兴父军跳战单谁百叶背周传越绿园城报练收元木答跟站布段展夜细今言转具制离论品造号热丽半试台斯校业例奇北格坐列黑死近拉察保注鸟古性讲类识期建块班集早景服似系装查唱圆精科晚朋何包脚响设确称考非毛据紧彩准送积首雪衣产始刻强该巴取极影士拿克底切房牛办反沙朗爷义江演脸纸息倒共调区改围玩奶曲市板灯呀钱温术双诗铁静及断留联任足随皮慢决排华土刚领夫至六睛英笔您穿惊标管约章帮终食云尽座需八视趣群功验松器按突失除备桥罗志且德七苦举诉即怕赛岁助则较微急况顶久呼停简龙病级环资广野宝忙参复朝养护赶室童冲描李娘推阅香村旁念摇男导基院令低历必秋钟乎丁沉客错采引伤阿究卡评睡默脑议富般持屋争嘴买窗植印境录愿掉顺阵冬居右填鸡害质洋吹商短显密育伴闪速汉舞楼射消祖弟伙支啦左易救未礼鲜充灵虫乡藏际编蓝待状朵团击兵证田楚值爬胜希材破态修戏湖丝族够农述渐波姑忽网项另姐颜亚介镜谢置价换翻篇择纪冷叔吸获味互适乘续忘袋枝斗哥兰武创九伯划羊众圈层依哈菜规坚探遇激夏升泥假折油曾狗饭竟冰谈绍严医怀尾技虽颗森`.split('')); 
+
+        let currentSpeech = null;
+        let isPaused = false;
+        const isAndroid = /Android/i.test(navigator.userAgent);
+
+        // 安卓设备首次点击激活
+        if (isAndroid) {
+            document.body.addEventListener('click', () => {
+                console.log('安卓设备已激活语音功能');
+                document.body.classList.add('user-activated');
+            }, { once: true });
+        }
+
+        function checkCharacters(text) {
+            const uniqueChars = new Set();
+            [...text].forEach((char, index) => {
+                if (!ALLOWED_CHARS.has(char) && /[\u4e00-\u9fa5]/.test(char)) {
+                    uniqueChars.add(char);
+                }
+            });
+            return Array.from(uniqueChars); // 📌 改为返回唯一字符数组
+        }
+
+        function showResult(text, invalidChars) {
+            let html = text;
+            const uniqueCount = invalidChars.length;
+            
+            // 标红处理（改为标红所有出现位置）
+            invalidChars.forEach(char => {
+                html = html.replace(new RegExp(char, 'g'), 
+                    `<span class="invalid-char">${char}</span>`);
+            });
+
+            // 优化统计提示
+            if (uniqueCount > 0) {
+                const example = invalidChars.slice(0,5).join('、');
+                const moreTip = uniqueCount > 5 ? `等${uniqueCount}字` : '';
+                html += `<div class="invalid-tip">
+                    ※ 使用魔法词典外文字：${example}${moreTip}
+                </div>`;
+            }
+
+            document.querySelector('.speech-controls').style.display = 'block';
+            document.getElementById('storyResult').innerHTML = html;
+        }
+
+        async function generateStory() {
+            const btn = document.getElementById('generateBtn');
+            try {
+                btn.classList.add('loading');
+                btn.innerHTML = '🪄 魔法正在施展中';
+
+                const selectedWords = [
+                    document.getElementById('word1').value,
+                    document.getElementById('word2').value,
+                    document.getElementById('word3').value,
+                    document.getElementById('word4').value,
+                    document.getElementById('customWord').value
+                ].filter(w => w.trim() !== ''); // 过滤空值
+
+                if (selectedWords.length < 2) {
+                    alert("请至少选择或输入两个魔法元素！");
+                    return;
+                }
+
+                const length = document.querySelector('input[name="length"]:checked').value;
+
+                const prompt = `用这些元素写童话：${selectedWords.join("+")}
+需包含：
+- 约${length}字
+- 完整故事结构
+- 合理困境
+- 使用这些汉字：${Array.from(ALLOWED_CHARS).join('')}
+（最多允许15个例外字）`;
+
+                const response = await fetch(API_CONFIG.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_CONFIG.key}`
+                    },
+                    body: JSON.stringify({
+                        model: API_CONFIG.model,
+                        messages: [{role: "user", content: prompt}],
+                        temperature: 0.7,
+                        max_tokens: parseInt(length) * 2
+                    })
+                });
+
+                if (!response.ok) throw new Error(`请求失败：${response.status}`);
+                const data = await response.json();
+                let story = data.choices[0].message.content
+                    .replace(/\*\*/g, '') // 📌 新增：移除所有**
+                    .replace(/^(好的，|首先，)/gm, '')
+                    .replace(/([。！？])(?![”’])/g, '$1\n');
+
+                const invalidChars = checkCharacters(story);
+                showResult(story, invalidChars);
+
+            } catch (error) {
+                console.error("生成失败:", error);
+                alert("🧙♂️ 魔法书暂时打不开，请稍后再试！");
+            } finally {
+                btn.classList.remove('loading');
+                btn.innerHTML = '✨ 施展魔法 ✨';
+            }
+        }
+
+        function toggleReading() {
+            console.log('点击朗读按钮，当前状态：', { currentSpeech, isPaused });
+            
+            if (isAndroid && !document.body.classList.contains('user-activated')) {
+                alert("请先点击页面任意位置激活朗读功能");
+                return;
+            }
+
+            if (isAndroid) {
+                const toggleBtn = document.getElementById('toggleBtn');
+                toggleBtn.classList.add('speech-loading');
+                setTimeout(() => {
+                    handleSpeech();
+                    toggleBtn.classList.remove('speech-loading');
+                }, 300);
+            } else {
+                handleSpeech();
+            }
+        }
+
+        function handleSpeech() {
+            if (!window.speechSynthesis) {
+                alert("当前浏览器不支持文本朗读功能");
+                return;
+            }
+            
+            if (!currentSpeech) {
+                startReading();
+            } else {
+                if (isPaused) {
+                    console.log('尝试恢复朗读');
+                    speechSynthesis.resume();
+                } else {
+                    console.log('尝试暂停朗读');
+                    speechSynthesis.pause();
+                }
+                isPaused = !isPaused;
+                updateButtonState();
+            }
+        }
+
+        function startReading() {
+            console.log('开始朗读流程');
+            
+            const resultDiv = document.getElementById('storyResult');
+            if (!resultDiv) {
+                console.error('找不到故事内容容器');
+                return;
+            }
+            
+            const text = resultDiv.textContent
+                .replace(/※.*/, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            if (!text) {
+                alert("请先生成故事内容");
+                return;
+            }
+
+            stopReading(); // 先停止之前的朗读
+
+            currentSpeech = new SpeechSynthesisUtterance(text);
+            currentSpeech.lang = 'zh-CN';
+            currentSpeech.rate = 0.9;
+            
+            // 安卓设备特殊处理
+            if (isAndroid) {
+                currentSpeech.volume = 1.0;
+                currentSpeech.pitch = 1.0;
+            }
+            
+            // 事件绑定
+            currentSpeech.onstart = () => {
+                console.log('朗读开始');
+                resultDiv.classList.add('reading');
+                isPaused = false;
+                updateButtonState();
+            };
+            
+            currentSpeech.onend = () => {
+                console.log('朗读结束');
+                resultDiv.classList.remove('reading');
+                currentSpeech = null;
+                isPaused = false;
+                updateButtonState();
+            };
+            
+            currentSpeech.onpause = () => {
+                console.log('朗读暂停');
+                isPaused = true;
+                updateButtonState();
+            };
+            
+            currentSpeech.onresume = () => {
+                console.log('朗读恢复');
+                isPaused = false;
+                updateButtonState();
+            };
+
+            console.log('启动语音合成');
+            speechSynthesis.speak(currentSpeech);
+        }
+
+        function stopReading() {
+            console.log('停止朗读');
+            
+            if (window.speechSynthesis) {
+                speechSynthesis.cancel();
+                // 安卓设备需要重置语音队列
+                if (isAndroid) {
+                    setTimeout(() => {
+                        speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+                    }, 100);
+                }
+            }
+            currentSpeech = null;
+            isPaused = false;
+            updateButtonState();
+        }
+
+        function updateButtonState() {
+            const toggleBtn = document.getElementById('toggleBtn');
+            if (!toggleBtn) return;
+
+            const stateText = currentSpeech ? 
+                (isPaused ? '▶ 继续' : '⏸ 暂停') : 
+                '🔊 开始朗读';
+            
+            console.log('更新按钮状态：', stateText);
+            toggleBtn.textContent = stateText;
+        }
+    </script>
+</body>
+</html>
