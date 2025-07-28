@@ -208,7 +208,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>🍎 童话沙拉 🥗</h1>
+        <h1>🍎 童话沙拉-凡凡暖暖版 🥗</h1>
         <p>搅拌魔法元素，烹饪奇妙故事！</p>
     </div>
 
@@ -300,7 +300,7 @@
         // API配置（需要填写有效信息）
         const API_CONFIG = {
             url: "https://api.deepseek.com/v1/chat/completions",
-            key: "sk-e0371d78475c43ffb7b4ea75cfb075de",
+            key: "sk-fc0846a368f740348477dbc9e7451139",
             model: "deepseek-chat"
         };
 
@@ -378,6 +378,8 @@
 - 约${length}字
 - 完整故事结构
 - 合理困境
+- 主角为凡凡（哥哥）和暖暖（妹妹），与他们及其亲戚相关的角色都是正面和积极的情节设计
+- 直接呈现生成的内容，不必要有多余的解释说明
 - 使用这些汉字：${Array.from(ALLOWED_CHARS).join('')}
 （最多允许15个例外字）`;
 
@@ -546,6 +548,19 @@
             console.log('更新按钮状态：', stateText);
             toggleBtn.textContent = stateText;
         }
+
+    document.addEventListener('deviceready', function() {
+        // 等待TTS插件加载完成
+        var ttsCheckInterval = setInterval(function() {
+            if (window.TTS) {
+                isDeviceReady = true;
+                clearInterval(ttsCheckInterval);
+                console.log('TTS插件加载成功');
+            } else {
+                console.log('等待TTS插件加载...');
+            }
+        }, 100);
+    }, false);
     </script>
 </body>
 </html>
